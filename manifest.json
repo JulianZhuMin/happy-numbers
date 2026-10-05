@@ -1,0 +1,18 @@
+{
+  "name": "Happy Numbers 快樂數字",
+  "short_name": "快樂數字",
+  "description": "快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）",
+  "lang": "zh-HK",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#FFF6E5",
+  "theme_color": "#FFF6E5",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
