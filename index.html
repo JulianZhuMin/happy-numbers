@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1e">
+<meta name="app-version" content="1f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -156,6 +156,10 @@
     .parent { padding-bottom: 70px; }
   }
 
+  #finger { position: fixed; left: 0; top: 0; width: clamp(72px, 19vh, 140px); height: auto; z-index: 6; pointer-events: none; opacity: 0;
+    transform-origin: 30% 10%; will-change: transform, opacity; }
+  #finger[hidden] { display: none; }
+  #finger svg { display: block; width: 100%; height: auto; overflow: visible; }
   #bubbles { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
   .bubble { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; opacity: 0; will-change: transform, opacity;
     border: 2px solid var(--rim); box-shadow: 0 0 8px var(--glow), inset 0 0 10px var(--glow);
@@ -221,14 +225,26 @@
     <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="12" y="4" width="16" height="30" rx="4" fill="#fff" stroke="#3b2f2a" stroke-width="3"/><circle cx="20" cy="29" r="1.8" fill="#3b2f2a"/></svg>
     <span class="txt"><span>打橫部機，會更好玩！</span><span class="en" lang="en">Turn the phone sideways — it's more fun!</span></span>
   </div>
-  <div id="bubbles" aria-hidden="true"></div>
+  <!-- cartoon pointing hand: taps the correct number after 2 misses -->
+<div id="finger" hidden aria-hidden="true"><svg focusable="false" viewBox="0 0 100 125" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3b3b4f" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff">
+    <rect x="22" y="2" width="18" height="62" rx="9"/>
+    <path d="M24 52 C 16 52 12 60 12 70 L 12 88 C 12 102 24 110 40 110 L 64 110 C 80 110 88 100 88 86 L 88 64 C 88 56 82 52 76 54 C 74 46 66 44 61 49 C 58 42 50 41 46 47 L 40 47 L 40 56"/>
+    <path d="M14 70 C 6 66 2 72 6 78 L 14 86" />
+    <path d="M46 47 L 46 64 M61 49 L 61 64 M76 54 L 76 66" fill="none"/>
+    <rect x="30" y="106" width="52" height="16" rx="6" fill="#ffd54f"/>
+  </g>
+  <ellipse cx="31" cy="12" rx="4" ry="6" fill="#ffffff" opacity=".9"/>
+</svg></div>
+<div id="bubbles" aria-hidden="true"></div>
 
 <script>
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1e';
+  var APP_VERSION = '1f';
   var BUZZER_MS = 550;
+  var MAX_TRIES = 2;
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));
@@ -679,7 +695,6 @@
   async function quiz(g) {
     setScene('quiz'); stage.className = 'closed';
     showAllNums();
-    // ensure all visible with pop if we skipped intro
     if (state.skipIntro) {
       resetNums();
       NUMBERS.forEach(function (c, i) { els[c.id].style.animationDelay = (i * 0.06 / SPEED) + 's'; els[c.id].classList.add('pop-in'); });
@@ -692,36 +707,95 @@
       remaining.splice(remaining.indexOf(c), 1);
       state.lastId = c.id;
       round++; state.target = c;
-      clearHl();
       log({ t: 'call', id: c.id, round: round });
-      caption('邊個係' + c.zh + '？' + EN('Which is ' + c.en + '?'), c);
-      // Speak ask in Cantonese then English, then open taps
-      await say('邊個係' + c.zh, g, { id: c.id, clip: 'ask-' + c.id, rate: 0.8 });
-      await wait(250, g);
-      await say('Which is ' + c.en, g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.25, rate: 0.9 });
-      setOpen(true);
-      var res = await waitTap(g, ASK_WAIT_MS);
-      check(g);
-      if (res.correct) {
-        await celebrate(c, g);
-      } else if (res.timeout) {
-        log({ t: 'silence', id: c.id });
-        caption('');
-        await wait(350, g);
-      } else {
-        // wrong tap: Color Genie-style buzzer + shake (no spoken uh-oh)
-        var wj = jumper(res.num);
-        retrigger(wj, 'nope');
-        buzz();
-        caption('');
-        setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
-        await wait(BUZZER_MS + 50, g);
+      var solved = false;
+      for (var attempt = 1; attempt <= MAX_TRIES; attempt++) {
+        clearHl();
+        caption('邊個係' + c.zh + '？' + EN('Which is ' + c.en + '?'), c);
+        log({ t: 'ask', id: c.id, attempt: attempt });
+        await say('邊個係' + c.zh, g, { id: c.id, clip: 'ask-' + c.id, rate: 0.8 });
+        await wait(250, g);
+        await say('Which is ' + c.en, g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.25, rate: 0.9 });
+        setOpen(true);
+        var res = await waitTap(g, ASK_WAIT_MS);
+        check(g);
+        setOpen(false);
+        if (res.correct) {
+          await celebrate(c, g);
+          solved = true;
+          break;
+        }
+        if (res.timeout) {
+          log({ t: 'silence', id: c.id, attempt: attempt });
+          caption('');
+          await wait(350, g);
+        } else {
+          var wj = jumper(res.num);
+          retrigger(wj, 'nope');
+          buzz();
+          caption('');
+          setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
+          await wait(BUZZER_MS + 50, g);
+        }
+        if (attempt === MAX_TRIES) {
+          await fingerTap(c, g);
+        }
       }
       state.target = null;
-      setOpen(false);
       await wait(300, g);
     }
     caption('');
+  }
+
+
+  function play(el, kf, ms, easing) {
+    return new Promise(function (res) {
+      var done = false, fin = function () { if (!done) { done = true; res(); } };
+      if (el.animate) {
+        var a = el.animate(kf, { duration: ms / SPEED, fill: 'forwards', easing: easing || 'ease-in-out' });
+        a.onfinish = fin; a.oncancel = fin;
+      }
+      setTimeout(fin, ms / SPEED + 250);
+    });
+  }
+  var fingerEl = document.getElementById('finger');
+  async function fingerTap(c, g) {
+    var b = els[c.id], r = b.getBoundingClientRect(), reduce = reduceMQ.matches;
+    var fw = fingerEl.getBoundingClientRect().width || 90;
+    var tx = r.left + r.width * 0.5, ty = r.top + r.height * 0.5;
+    var x1 = tx - fw * 0.31, y1 = ty - fw * 0.02;
+    function at(x, y, sc) { return 'translate(' + x + 'px,' + y + 'px) scale(' + (sc || 1) + ')'; }
+    fingerEl.getAnimations && fingerEl.getAnimations().forEach(function (a) { a.cancel(); });
+    fingerEl.hidden = false;
+    clearHl(); b.classList.add('hl');
+    log({ t: 'finger', id: c.id, reduce: reduce });
+    if (reduce) {
+      await play(fingerEl, [{ transform: at(x1, y1), opacity: 0 }, { transform: at(x1, y1), opacity: 1 }], 250);
+      check(g); await wait(350, g);
+    } else {
+      var x0 = Math.min(innerWidth - fw * 0.6, tx + innerWidth * 0.25), y0 = innerHeight + 20;
+      await play(fingerEl, [
+        { transform: at(x0, y0), opacity: 0 },
+        { transform: at(x0, y0), opacity: 1, offset: 0.15 },
+        { transform: at(x1 + 10, y1 + 34), opacity: 1 }
+      ], 900, 'cubic-bezier(.35,.7,.4,1)');
+      check(g);
+      await play(fingerEl, [{ transform: at(x1 + 10, y1 + 34) }, { transform: at(x1, y1, 0.9) }], 160, 'ease-in');
+      check(g);
+    }
+    log({ t: 'finger-tap', id: c.id });
+    retrigger(jumper(c), 'bounce');
+    playSound('boing', c);
+    if (!reduce) await play(fingerEl, [{ transform: at(x1, y1, 0.9) }, { transform: at(x1 + 6, y1 + 20) }], 180, 'ease-out');
+    await wait(450, g);
+    var fr = fingerEl.getBoundingClientRect();
+    if (reduce) await play(fingerEl, [{ transform: at(fr.left, fr.top), opacity: 1 }, { transform: at(fr.left, fr.top), opacity: 0 }], 250);
+    else await play(fingerEl, [{ transform: at(fr.left, fr.top), opacity: 1 }, { transform: at(fr.left + 60, innerHeight + 20), opacity: 0 }], 600, 'ease-in');
+    fingerEl.hidden = true;
+    b.classList.remove('hl');
+    log({ t: 'finger-gone', id: c.id });
+    check(g);
+    await wait(300, g);
   }
 
   async function celebrate(c, g) {
