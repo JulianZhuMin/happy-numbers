@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1b">
+<meta name="app-version" content="1c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -208,7 +208,8 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1b';
+  var APP_VERSION = '1c';
+  var BUZZER_MS = 550;
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));
@@ -366,6 +367,19 @@
       whistle(t + 0.9, 0.7, 1300, 2000, 1650, 0.14);
     } else if (kind === 'bye') {
       [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
+    } else if (kind === 'buzzer') {
+      var dur = BUZZER_MS / 1000, bo = ctx.createOscillator(), bo2 = ctx.createOscillator(), bmix = ctx.createGain(),
+          lp = ctx.createBiquadFilter(), bg = ctx.createGain();
+      bo.type = 'sawtooth'; bo2.type = 'square';
+      bo.frequency.setValueAtTime(220, t); bo.frequency.exponentialRampToValueAtTime(90, t + dur);
+      bo2.frequency.setValueAtTime(222, t); bo2.frequency.exponentialRampToValueAtTime(91, t + dur);
+      bmix.gain.value = 0.5;
+      lp.type = 'lowpass'; lp.Q.value = 0.7;
+      lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(650, t + dur);
+      bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(0.3, t + 0.04);
+      bg.gain.setValueAtTime(0.3, t + dur - 0.2); bg.gain.linearRampToValueAtTime(0.0001, t + dur);
+      bo.connect(lp); bo2.connect(bmix); bmix.connect(lp); lp.connect(bg); bg.connect(master);
+      bo.start(t); bo2.start(t); bo.stop(t + dur + 0.03); bo2.stop(t + dur + 0.03);
     } else if (kind === 'start') {
       [392, 523.25, 659.25].forEach(function (fr, i) { tone('triangle', t + i * 0.08, 0.25, fr, 0, 0.25); });
     }
@@ -457,7 +471,7 @@
   /* ---------- clips ---------- */
   var CLIP_NAMES = [];
   NUMBERS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-en', 'ask-' + c.id, 'ask-' + c.id + '-en'); });
-  CLIP_NAMES.push('yeah', 'uhoh', 'byebye', 'well-done', 'lets-learn', 'lets-learn-en');
+  CLIP_NAMES.push('yeah', 'byebye', 'well-done', 'lets-learn', 'lets-learn-en');
   var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
   T.clips = clipState;
   function clipNotify(n) { var w = clipWaiters[n] || []; clipWaiters[n] = []; w.forEach(function (f) { f(); }); }
@@ -557,6 +571,7 @@
     NUMBERS.forEach(function (c) {
       var b = els[c.id]; b.className = 'num'; b.removeAttribute('data-found');
       b.style.animationDelay = ''; b.style.visibility = '';
+      b.setAttribute('aria-hidden', 'false');
       b.querySelector('.jumper').className = 'jumper';
     });
     waveHand.classList.remove('show');
@@ -565,6 +580,25 @@
     ['start', 'game', 'again'].forEach(function (s) { document.getElementById(s).hidden = s !== id; });
   }
   function clearHl() { NUMBERS.forEach(function (c) { els[c.id].classList.remove('hl'); }); }
+  function buzz() {
+    playSound('buzzer');
+    try { if (typeof navigator.vibrate === 'function') navigator.vibrate(120); } catch (e) {}
+  }
+  function showOnly(id) {
+    NUMBERS.forEach(function (c) {
+      var b = els[c.id];
+      var on = !id || c.id === id;
+      b.style.visibility = on ? '' : 'hidden';
+      b.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+  }
+  function showAllNums() {
+    NUMBERS.forEach(function (c) {
+      var b = els[c.id];
+      b.style.visibility = '';
+      b.setAttribute('aria-hidden', 'false');
+    });
+  }
 
   function waitTap(g, ms) {
     return new Promise(function (resolve) {
@@ -605,7 +639,7 @@
     await wait(300, g);
     for (var i = 0; i < NUMBERS.length; i++) {
       var c = NUMBERS[i];
-      clearHl(); els[c.id].classList.add('hl');
+      clearHl(); showOnly(c.id); els[c.id].classList.add('hl');
       caption(c.zh + ' ' + c.n + EN(c.en), c);
       retrigger(jumper(c), 'bounce');
       playSound('boing', c);
@@ -615,12 +649,13 @@
       log({ t: 'intro', id: c.id });
       await wait(280, g);
     }
-    clearHl(); caption('');
+    clearHl(); showAllNums(); caption('');
     await wait(400, g);
   }
 
   async function quiz(g) {
     setScene('quiz'); stage.className = 'closed';
+    showAllNums();
     // ensure all visible with pop if we skipped intro
     if (state.skipIntro) {
       resetNums();
@@ -648,18 +683,16 @@
         await celebrate(c, g);
       } else if (res.timeout) {
         log({ t: 'silence', id: c.id });
-        // soft uh-oh then move on (number consumed)
         caption('');
-        await say('呃哦', g, { clip: 'uhoh' });
         await wait(350, g);
       } else {
-        // wrong tap
+        // wrong tap: Color Genie-style buzzer + shake (no spoken uh-oh)
         var wj = jumper(res.num);
         retrigger(wj, 'nope');
+        buzz();
         caption('');
-        await say('呃哦', g, { clip: 'uhoh' });
         setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
-        await wait(400, g);
+        await wait(BUZZER_MS + 50, g);
       }
       state.target = null;
       setOpen(false);
