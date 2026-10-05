@@ -1,5 +1,5 @@
 // Offline support for Happy Numbers 快樂數字. Bump CACHE (and APP_VERSION in index.html) on every release.
-var CACHE = 'happy-numbers-v1c';
+var CACHE = 'happy-numbers-v1d';
 var NUMS = [1,2,3,4,5,6,7,8,9,10];
 var CLIPS = NUMS.reduce(function (a, n) {
   return a.concat(['./audio/n' + n + '.mp3', './audio/n' + n + '-en.mp3', './audio/ask-n' + n + '.mp3', './audio/ask-n' + n + '-en.mp3']);

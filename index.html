@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1c">
+<meta name="app-version" content="1d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -94,6 +94,22 @@
   #stage.open .num { filter: drop-shadow(0 4px 4px rgba(0,0,0,.12)); }
   .num .jumper { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; }
   .num.hl { transform: scale(1.12) !important; z-index: 2; box-shadow: 0 0 0 6px #fff, 0 10px 0 var(--line), 0 0 24px var(--body); }
+  /* Intro read: only one number — center it big on stage */
+  #stage.solo-read {
+    display: flex; align-items: center; justify-content: center;
+    grid-template-columns: none; width: min(92vw, 120vh); max-height: 78vh;
+  }
+  #stage.solo-read .num { display: none; }
+  #stage.solo-read .num.solo {
+    display: flex !important; visibility: visible !important;
+    width: min(52vw, 42vh, 280px); height: min(52vw, 42vh, 280px);
+    aspect-ratio: 1; font-size: clamp(72px, 28vh, 160px);
+    transform: scale(1) !important; margin: 0 auto;
+  }
+  #stage.solo-read .num.solo.hl {
+    transform: scale(1.06) !important;
+    box-shadow: 0 0 0 8px #fff, 0 14px 0 var(--line), 0 0 36px var(--body);
+  }
   /* Correctly tapped: keep a clear white ring for the rest of the round (like a found mark). */
   .num.done-ok {
     box-shadow: 0 0 0 6px #fff, 0 0 0 11px var(--line), 0 8px 0 var(--line), 0 12px 20px rgba(0,0,0,.18);
@@ -208,7 +224,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1c';
+  var APP_VERSION = '1d';
   var BUZZER_MS = 550;
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
   var params = new URLSearchParams(location.search);
@@ -569,7 +585,7 @@
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function resetNums() {
     NUMBERS.forEach(function (c) {
-      var b = els[c.id]; b.className = 'num'; b.removeAttribute('data-found');
+      var b = els[c.id]; b.className = 'num'; b.removeAttribute('data-found'); stage.classList.remove('solo-read');
       b.style.animationDelay = ''; b.style.visibility = '';
       b.setAttribute('aria-hidden', 'false');
       b.querySelector('.jumper').className = 'jumper';
@@ -585,16 +601,20 @@
     try { if (typeof navigator.vibrate === 'function') navigator.vibrate(120); } catch (e) {}
   }
   function showOnly(id) {
+    stage.classList.add('solo-read');
     NUMBERS.forEach(function (c) {
       var b = els[c.id];
       var on = !id || c.id === id;
+      b.classList.toggle('solo', on);
       b.style.visibility = on ? '' : 'hidden';
       b.setAttribute('aria-hidden', on ? 'false' : 'true');
     });
   }
   function showAllNums() {
+    stage.classList.remove('solo-read');
     NUMBERS.forEach(function (c) {
       var b = els[c.id];
+      b.classList.remove('solo');
       b.style.visibility = '';
       b.setAttribute('aria-hidden', 'false');
     });
