@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1a">
+<meta name="app-version" content="1b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -94,7 +94,14 @@
   #stage.open .num { filter: drop-shadow(0 4px 4px rgba(0,0,0,.12)); }
   .num .jumper { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; }
   .num.hl { transform: scale(1.12) !important; z-index: 2; box-shadow: 0 0 0 6px #fff, 0 10px 0 var(--line), 0 0 24px var(--body); }
-  .num.done-ok { opacity: .95; }
+  /* Correctly tapped: keep a clear white ring for the rest of the round (like a found mark). */
+  .num.done-ok {
+    box-shadow: 0 0 0 6px #fff, 0 0 0 11px var(--line), 0 8px 0 var(--line), 0 12px 20px rgba(0,0,0,.18);
+    opacity: 1;
+  }
+  .num.hl.done-ok {
+    box-shadow: 0 0 0 6px #fff, 0 10px 0 var(--line), 0 0 24px var(--body);
+  }
   .jumper.hop { animation: hop calc(.8s / var(--spd)) ease-out 1; }
   .jumper.bounce { animation: bounce calc(.6s / var(--spd)) ease-in-out 2; }
   .jumper.nope { animation: nope calc(.6s / var(--spd)) ease-in-out 1; }
@@ -201,7 +208,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1a';
+  var APP_VERSION = '1b';
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));
@@ -548,7 +555,8 @@
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function resetNums() {
     NUMBERS.forEach(function (c) {
-      var b = els[c.id]; b.className = 'num'; b.style.animationDelay = ''; b.style.visibility = '';
+      var b = els[c.id]; b.className = 'num'; b.removeAttribute('data-found');
+      b.style.animationDelay = ''; b.style.visibility = '';
       b.querySelector('.jumper').className = 'jumper';
     });
     waveHand.classList.remove('show');
@@ -661,7 +669,9 @@
   }
 
   async function celebrate(c, g) {
+    // done-ok stays after hop so tapped-correct numbers keep their outline ring
     els[c.id].classList.add('hl', 'done-ok');
+    els[c.id].setAttribute('data-found', '1');
     retrigger(jumper(c), 'hop');
     playSound('cheer', c);
     bubbles(c);
