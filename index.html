@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1g">
+<meta name="app-version" content="1h">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -186,7 +186,6 @@
   <section id="start" class="screen parent" aria-labelledby="title">
     <h1 id="title" class="app-name"><span class="zh">快樂數字</span><span class="en" lang="en">Happy Numbers</span></h1>
     <p class="sub">同小朋友一齊認數字 1–10<span class="en-line" lang="en">Learn numbers 1–10 together with your child</span></p>
-    <div class="mini" id="startMini" aria-hidden="true"></div>
     <button id="startBtn" class="big-btn" type="button" aria-label="開始玩 Start">開始<span class="en-line" lang="en" aria-hidden="true">Start</span></button>
     <p class="note" id="voiceNote"></p>
     <p class="note">先聽一至十嘅廣東話同英文，跟住聽到邊個數字就㩒邊個！<span class="en-line" lang="en">First listen to numbers 1–10 in Cantonese and English. Then tap the number you hear!</span></p>
@@ -201,7 +200,6 @@
 
   <section id="again" class="screen parent" hidden aria-labelledby="againTitle">
     <h2 id="againTitle" tabindex="-1">玩完喇！<span class="en-line" lang="en">All done!</span></h2>
-    <div class="mini" id="endMini" aria-hidden="true"></div>
     <div class="btn-row">
       <button id="doneBtn" class="mid-btn" type="button" aria-label="完，唔玩喇 Done">完<span class="en-line" lang="en" aria-hidden="true">Done</span></button>
     </div>
@@ -242,7 +240,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1g';
+  var APP_VERSION = '1h';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
@@ -289,7 +287,7 @@
       return '<span class="dot" style="background:' + c.body + ';color:' + c.fg + '">' + c.n + '</span>';
     }).join('');
   }
-  miniDots('startMini'); miniDots('endMini');
+  // v1h: removed mini dots under titles
 
   /* ---------- bubbles ---------- */
   var bubbleLayer = document.getElementById('bubbles');
