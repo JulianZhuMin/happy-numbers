@@ -6,7 +6,7 @@
 <title>Happy Numbers 快樂數字</title>
 <meta name="description" content="快樂數字 Happy Numbers：俾兩至四歲小朋友玩嘅廣東話認數字遊戲（1–10）。A Cantonese number game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="1f">
+<meta name="app-version" content="1g">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -242,7 +242,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂數字', en: 'Happy Numbers' };
-  var APP_VERSION = '1f';
+  var APP_VERSION = '1g';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';
@@ -682,11 +682,15 @@
       caption(c.zh + ' ' + c.n + EN(c.en), c);
       retrigger(jumper(c), 'bounce');
       playSound('boing', c);
-      await say(c.zh, g, { id: c.id, clip: c.id });
-      await wait(180, g);
-      await say(c.en, g, { id: c.id, clip: c.id + '-en', lang: 'en', pitch: 1.3, rate: 0.9 });
+      // v1g: each number read twice (zh+en), 0.5s between the two reads, then next
+      for (var r = 0; r < 2; r++) {
+        await say(c.zh, g, { id: c.id, clip: c.id });
+        await wait(180, g);
+        await say(c.en, g, { id: c.id, clip: c.id + '-en', lang: 'en', pitch: 1.3, rate: 0.9 });
+        if (r === 0) await wait(500, g);
+      }
       log({ t: 'intro', id: c.id });
-      await wait(280, g);
+      await wait(500, g);
     }
     clearHl(); showAllNums(); caption('');
     await wait(400, g);
